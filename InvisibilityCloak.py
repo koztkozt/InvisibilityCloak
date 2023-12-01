@@ -52,7 +52,7 @@ from re import sub, escape, findall
 from traceback import format_exc as print_traceback
 from optparse import OptionParser, TitledHelpFormatter
 from os import walk, path, remove, rename, getcwd, chdir
-
+import re
 
 def replaceGUIDAndToolName(theDirectory: str, theName: str) -> None:
 	"""
@@ -513,11 +513,11 @@ def changeToolName(theFile: str, theName: str, theObfMethod: str) -> None:
 			line = line.replace(currentToolName, theName)
 			fInCopy.write(line)
 
-		# replace any occurrence of current tool name in source code
-		elif currentToolName in line:
-			line = line.replace(currentToolName, theName)
+		# replace any occurrence of current tool name in source code (case-insensitive)
+		elif re.search(re.escape(currentToolName), line, re.IGNORECASE):
+			line = re.sub(re.escape(currentToolName), theName, line, flags=re.IGNORECASE)
 			fInCopy.write(line)
-
+			
 		# if no modifications need done to the line
 		else:
 			fInCopy.write(line)
