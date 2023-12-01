@@ -74,20 +74,26 @@ def replaceGUIDAndToolName(theDirectory: str, theName: str) -> None:
 			if file.endswith(".sln"):
 				slnFile = path.join(r, file)
 				currentToolName = file
-			elif file.endswith(".csproj"):
-				csProjFile = path.join(r, file)
-				csProjFileCount += 1
 			elif "AssemblyInfo.cs" in file:
 				assemblyInfoFile = path.join(r, file)
 
-	# if there is more than 1 C# project in the directory, display message and exit
-	if csProjFileCount > 1:
-		print(f"\n[-] ERROR: Currently this tool only supports having one C# project file to modify. The project directory you provided has {str(csProjFileCount)}\n")
-		exit(0)
-
-	print(f"[*] INFO: Changing C# project GUID in below files:\n{slnFile}\n{csProjFile}\n{assemblyInfoFile}\n")
 	# capture current tool name based on VS sln file name
 	currentToolName = currentToolName.replace(".sln", "")
+	
+	for r, d, f in walk(theDirectory):
+		for file in f:	
+			if file == currentToolName + ".csproj":
+				csProjFile = path.join(r, file)
+				# csProjFileCount += 1
+				break
+
+
+	# if there is more than 1 C# project in the directory, display message and exit
+	# if csProjFileCount > 1:
+	# 	print(f"\n[-] ERROR: Currently this tool only supports having one C# project file to modify. The project directory you provided has {str(csProjFileCount)}\n")
+	# 	exit(0)
+
+	print(f"[*] INFO: Changing C# project GUID in below files:\n{slnFile}\n{csProjFile}\n{assemblyInfoFile}\n")
 
 	# initialize this to random sha256 hash so there is no match initially (sha256 hash of "test")
 	currentGUID = "f2ca1bb6c7e907d06dafe4687e579fce76b37e4e93b7605022da52e6ccc26fd2"
@@ -469,6 +475,56 @@ def stringObfuscate(theFile: str, theName: str, theObfMethod: str) -> None:
 	fIn.close(), fInCopy.close()
 	remove(theFile), rename(f"{theFile}_copy", theFile)
 
+def changeToolName(theFile: str, theName: str, theObfMethod: str) -> None:
+	"""
+	method to replace tool name to new tool name
+	:param theFile: filepath to obfuscate the strings
+	:param theName: name of the new file
+	:param theObfMethod: obfuscation method
+	:return: None
+	"""
+	# make copy of source file that modifications will be written to
+	copyfile(theFile, f"{theFile}_copy")
+	fIn = open(theFile, 'r')
+	fInCopy = open(f"{theFile}_copy", "w")
+	
+	# get all lines in the source code file
+	theLines = fIn.readlines()
+
+	# iterate through all of the lines in the source code file
+	for line in theLines:
+		# replace namepace of old tool name to new tool name
+		if "namespace" in line and currentToolName in line:
+			line = line.replace(currentToolName, theName)		
+			fInCopy.write(line)
+
+		# if class currently has old tool name in it, replace it
+		elif f"class {currentToolName}" in line:
+			line = line.replace(currentToolName, theName)
+			fInCopy.write(line)
+
+		# if using library in class that has old tool name in it, replace it
+		elif line.strip().startswith("using") and currentToolName in line:
+			line = line.replace(currentToolName, theName)
+			fInCopy.write(line)
+
+		# replace constructor name if it has current tool name init
+		elif line.strip().startswith("public" + currentToolName):
+			line = line.replace(currentToolName, theName)
+			fInCopy.write(line)
+
+		# replace any occurrence of current tool name in source code
+		elif currentToolName in line:
+			line = line.replace(currentToolName, theName)
+			fInCopy.write(line)
+
+		# if no modifications need done to the line
+		else:
+			fInCopy.write(line)
+
+	# close file streams and replace old source file with new modified one
+	fIn.close(), fInCopy.close()
+	remove(theFile), rename(f"{theFile}_copy", theFile)
 
 def main(theObfMethod: str, theDirectory: str, theName: str) -> None:
 	"""
@@ -497,11 +553,17 @@ def main(theObfMethod: str, theDirectory: str, theName: str) -> None:
 	replaceGUIDAndToolName(theDirectory, theName)
 
 	# if user wants to obfuscate strings, then proceed
-	if theObfMethod != "":
+	if theObfMethod.lower() == 'base64' or theObfMethod.lower() == 'rot13' or theObfMethod.lower() == 'reverse':
 		for r, d, f in walk(theDirectory):
 			for file in f:
 				if file.endswith(".cs") and "AssemblyInfo.cs" not in file and r.endswith("obj\\Debug") == 0 and r.endswith("obj\\Release") == 0:
 					stringObfuscate(path.join(r, file), theName, theObfMethod)
+	elif theObfMethod.lower() == 'none':
+		for r, d, f in walk(theDirectory):
+			for file in f:
+				if file.endswith(".cs") and "AssemblyInfo.cs" not in file and r.endswith("obj\\Debug") == 0 and r.endswith("obj\\Release") == 0:
+					changeToolName(path.join(r, file), theName, theObfMethod)
+	
 	print(f'\n[+] SUCCESS: Your new tool {theName} now has the invisibility cloak applied.\n')
 
 
@@ -520,7 +582,7 @@ if __name__ == '__main__':
 			exit(0)
 
 		# if obfuscation method is not supported method, display help and exit
-		if options.obfMethod is not None and (options.obfMethod != "base64" and options.obfMethod != "rot13" and options.obfMethod != "reverse"):
+		if options.obfMethod is not None and (options.obfMethod != "base64" and options.obfMethod != "rot13" and options.obfMethod != "reverse" and options.obfMethod != "none"):
 			print("\n[-] ERROR: You must supply a supported string obfuscation method\n")
 			parser.print_help()
 			exit(0)

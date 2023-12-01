@@ -39,7 +39,7 @@ The below string candidates are not included in obfuscation
 ## Arguments/Options
 
 * `-d, --directory` - directory where your visual studio project is located
-* `-m, --method` - obfuscation method (base64, rot13, reverse)
+* `-m, --method` - obfuscation method (base64, rot13, reverse, none)
 * `-n, --name` - name of your new tool
 * `-h, --help` - help menu
 * `--version` - get version of tool
@@ -68,9 +68,9 @@ The below string candidates are not included in obfuscation
 
 ### Run InvisibilityCloak without string obfuscation
 
-`python InvisibilityCloak.py -d /path/to/project -n "TotallyLegitTool"`
+`python InvisibilityCloak.py -d /path/to/project -n "TotallyLegitTool" -m none`
 
-`python InvisibilityCloak.py -d C:\path\to\project -n "TotallyLegitTool"`
+`python InvisibilityCloak.py -d C:\path\to\project -n "TotallyLegitTool" -m none`
 
 ## Signature-Based Detection Statistics
 
