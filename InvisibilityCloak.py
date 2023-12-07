@@ -245,6 +245,9 @@ def canProceedWithObfuscation(theLine: str, theItem: str) -> int:
 	# can't obfuscate strings in method signatures
 	elif isLineMethodSignature(theLine) == 1:
 		return 0 
+	# can't obfuscate strings in EntryPoint of DLLImport
+	elif "EntryPoint =" in theLine or "EntryPoint=" in theLine:
+		return 0 		
 	# obfuscating strings in regexes has been problematic
 	elif "new Regex" in theLine or "Regex" in theLine:
 		return 0
